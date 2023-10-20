@@ -7,7 +7,7 @@ namespace MiniUrl.Configuration;
 
 public static class RedisConfiguration
 {
-    public static IServiceCollection ConfigureRedis(this IServiceCollection services, IConfiguration configuration)
+    public static void ConfigureRedis(this IServiceCollection services, IConfiguration configuration)
     {
         var redisSetting = new RedisSetting();
         configuration.GetSection(nameof(RedisSetting)).Bind(redisSetting);
@@ -34,7 +34,5 @@ public static class RedisConfiguration
 
         services.AddSingleton(redisSetting);
         services.AddSingleton<IDistributedLockFactory>(redLockFactory);
-            
-        return services;
     }
 }

@@ -10,7 +10,7 @@ public static class AuthConfiguration
 {
     public static void AddJwtAuthentication(this IServiceCollection service, IConfiguration configuration)
     {
-        var jwtSetting = configuration.GetSection("JwtSetting").Get<JwtSetting>();
+        var jwtSetting = configuration.GetSection(nameof(JwtSetting)).Get<JwtSetting>();
         
         service.AddAuthentication(cfg =>
         {
@@ -19,7 +19,7 @@ public static class AuthConfiguration
             cfg.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
         }).AddJwtBearer(options =>
         {
-            var secretKey = Encoding.UTF8.GetBytes(jwtSetting.SecretKey);
+            var secretKey = Encoding.UTF8.GetBytes(jwtSetting!.SecretKey);
             var encryptionKey = Encoding.UTF8.GetBytes(jwtSetting.EncryptKey);
 
             var validationParameters = new TokenValidationParameters
@@ -49,6 +49,7 @@ public static class AuthConfiguration
                     var claimsIdentity = context.Principal?.Identity as ClaimsIdentity;
                     if (claimsIdentity?.Claims?.Any() != true)
                         context.Fail("This token has no claims.");
+                    
                     return Task.CompletedTask;
                 }
             };

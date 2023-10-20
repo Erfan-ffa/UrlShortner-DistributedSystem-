@@ -37,12 +37,7 @@ public static class HangfireConfiguration
                 })
                 .UseFilter(new AutomaticRetryAttribute
                 {
-                    Attempts = hangFireSettings.DefaultRetryCount,
-                    // DelayInSecondsByAttemptFunc = attempt =>
-                    // {
-                    //     var random = new Random();
-                    //     return (int) Math.Round(Math.Pow(attempt - 1, 4) + 15 + random.Next(30) * attempt);
-                    // }
+                    Attempts = hangFireSettings.DefaultRetryCount
                 });
         });
 
