@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiniUrl.WebApi", "MiniUrl.WebApi\MiniUrl.WebApi.csproj", "{FAA9D417-1A49-410C-8B66-BF19B5F2F1F5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FAA9D417-1A49-410C-8B66-BF19B5F2F1F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAA9D417-1A49-410C-8B66-BF19B5F2F1F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAA9D417-1A49-410C-8B66-BF19B5F2F1F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAA9D417-1A49-410C-8B66-BF19B5F2F1F5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
