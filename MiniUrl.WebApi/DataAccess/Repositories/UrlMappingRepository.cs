@@ -17,6 +17,7 @@ public class UrlMappingRepository : IUrlMappingRepository
     private readonly IDistributedLockFactory _distributedLock;
     private readonly IUrlViewUpdater _urlViewerUpdater;
     private readonly IBackgroundJobClient _jobClient;
+    private readonly IConfiguration _configuration;
     private readonly IRedisCache _redisCache;
     private IMongoCollection<UrlMapping> UrlMappingCollection { get; }
     private IMongoCollection<UrlView> UrlViewCollection { get; }
@@ -24,13 +25,14 @@ public class UrlMappingRepository : IUrlMappingRepository
     public UrlMappingRepository(IOptionsMonitor<MongoSetting> mongoSetting,
         IRedisCache redisCache, IDistributedLockFactory distributedLock,
         IBackgroundJobClient jobClient, IUrlViewUpdater urlViewerUpdater, 
-        IMongoDbContext mongoTransactionHandler)
+        IMongoDbContext mongoTransactionHandler, IConfiguration configuration)
     {
         _redisCache = redisCache;
         _distributedLock = distributedLock;
         _jobClient = jobClient;
         _urlViewerUpdater = urlViewerUpdater;
         _mongoTransactionHandler = mongoTransactionHandler;
+        _configuration = configuration;
         var mongoClient = new MongoClient(mongoSetting.CurrentValue.ConnectionString);
         var dbContext = mongoClient.GetDatabase(mongoSetting.CurrentValue.DatabaseName);
         UrlMappingCollection = dbContext.GetCollection<UrlMapping>(nameof(UrlMapping));
@@ -77,9 +79,10 @@ public class UrlMappingRepository : IUrlMappingRepository
 
     private void EnqueueUrlViewUpdaterJob(UrlMappingData urlMappingData, string shortUrl, CancellationToken cancellationToken)
     {
+        var updateDatabaseInterval = _configuration.GetSection("TimeIntervalForSyncDatabaseWithCacheInSeconds").Value;
         _jobClient.Schedule(() =>
                 _urlViewerUpdater.UpdateViewsAsync(urlMappingData, shortUrl, cancellationToken),
-                delay: TimeSpan.FromSeconds(5));
+                delay: TimeSpan.FromSeconds(Convert.ToInt64(updateDatabaseInterval)));
     }
 
     private async Task DisableUpdateViewsInDbTemporarilyAsync(string shortUrl, UrlMappingData urlMappingData)
