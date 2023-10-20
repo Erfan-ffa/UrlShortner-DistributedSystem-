@@ -45,10 +45,10 @@ builder.Services.AddHangfireConfig(builder.Configuration);
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-builder.Services.AddHangfireJobs(builder.Services.BuildServiceProvider());
+builder.Services.AddHangfireJobs();
 builder.Services.AddScoped<IUrlMappingRepository, UrlMappingRepository>();
 
-builder.Services.AddRabbitMqConfig(builder.Configuration, builder.Services.BuildServiceProvider());
+builder.Services.AddRabbitMqConfig(builder.Configuration);
 
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();

@@ -7,8 +7,9 @@ namespace MiniUrl.Services.Messaging;
 
 public static class MessagingConfiguration
 {
-    public static void AddRabbitMqConfig(this IServiceCollection service, IConfiguration configuration, IServiceProvider serviceProvider)
+    public static void AddRabbitMqConfig(this IServiceCollection service, IConfiguration configuration)
     {
+        var serviceProvider = service.BuildServiceProvider();
         var setting = configuration.GetSection(nameof(RabbitMqSetting)).Get<RabbitMqSetting>();
         var redisCache = serviceProvider.GetRequiredService<IRedisCache>();
         var usMappingRepository = serviceProvider.GetRequiredService<IUrlMappingRepository>();

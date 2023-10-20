@@ -39,7 +39,7 @@ public class RedisCache : IRedisCache
             if (string.IsNullOrEmpty(cachedObject) == false)
                 return JsonSerializer.Deserialize<T>(cachedObject);
         }
-        catch (Exception ex)
+        catch
         {
             return default;
         }
@@ -55,7 +55,7 @@ public class RedisCache : IRedisCache
             if (string.IsNullOrEmpty(cachedObject) == false)
                 return JsonSerializer.Deserialize<T>(cachedObject);
         }
-        catch (Exception ex)
+        catch
         {
             return default;
         }

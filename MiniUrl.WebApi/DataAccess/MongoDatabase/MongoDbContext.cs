@@ -46,7 +46,7 @@ public class MongoDbContext : IMongoDbContext
             await func().ConfigureAwait(false);
             await CommitTransactionAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch(Exception exception)
+        catch
         {
             await RollBackTransactionAsync(cancellationToken).ConfigureAwait(false);
             return false;

@@ -39,7 +39,7 @@ public class GlobalExceptionHandlerMiddleware
             catch (UnauthorizedAccessException exception)
             {
                 httpStatusCode = HttpStatusCode.Unauthorized;
-                message = "You are unauthorized. Please register or login first.";
+                message = exception.Message;
                 await WriteToResponseAsync();
             }
             catch (Exception exception)
