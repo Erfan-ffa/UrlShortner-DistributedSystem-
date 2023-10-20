@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using MiniUrl.DataAccess.Contracts;
+using MiniUrl.Entities;
 using MongoDB.Driver;
 
 namespace MiniUrl.DataAccess.MongoDatabase;
@@ -14,6 +15,26 @@ public class MongoDbContext : IMongoDbContext
     {
         Client = new MongoClient(mongoSetting.CurrentValue.ConnectionString);
         Database = Client.GetDatabase(mongoSetting.CurrentValue.DatabaseName);
+        CreatUrlMappingCollectionRequiredIndexes();
+        CreatUrlViewsCollectionRequiredIndexes();
+    }
+
+    private void CreatUrlMappingCollectionRequiredIndexes()
+    {
+        var indexKeys = Builders<UrlMapping>.IndexKeys.Ascending(nameof(UrlMapping.ShortUrl));
+        var indexOptions = new CreateIndexOptions { Unique = true };
+        var collection = Database.GetCollection<UrlMapping>(nameof(UrlMapping));
+        
+        collection.Indexes.CreateOne(new CreateIndexModel<UrlMapping>(indexKeys, indexOptions));
+    }
+    
+    private void CreatUrlViewsCollectionRequiredIndexes()
+    {
+        var indexKeys = Builders<UrlView>.IndexKeys.Ascending(nameof(UrlView.UrlMappingId));
+        var indexOptions = new CreateIndexOptions { Unique = false };
+        var collection = Database.GetCollection<UrlView>(nameof(UrlView));
+        
+        collection.Indexes.CreateOne(new CreateIndexModel<UrlView>(indexKeys, indexOptions));        
     }
     
     public async Task<bool> WithTransactionAsync(Func<Task> func, ClientSessionOptions sessionOptions = null,
