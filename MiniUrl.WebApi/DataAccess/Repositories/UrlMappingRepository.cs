@@ -13,7 +13,7 @@ namespace MiniUrl.DataAccess.Repositories;
 
 public class UrlMappingRepository : IUrlMappingRepository
 {
-    private readonly IMongoTransactionHandler _mongoTransactionHandler;
+    private readonly IMongoDbContext _mongoTransactionHandler;
     private readonly IDistributedLockFactory _distributedLock;
     private readonly IUrlViewUpdater _urlViewerUpdater;
     private readonly IBackgroundJobClient _jobClient;
@@ -24,7 +24,7 @@ public class UrlMappingRepository : IUrlMappingRepository
     public UrlMappingRepository(IOptionsMonitor<MongoSetting> mongoSetting,
         IRedisCache redisCache, IDistributedLockFactory distributedLock,
         IBackgroundJobClient jobClient, IUrlViewUpdater urlViewerUpdater, 
-        IMongoTransactionHandler mongoTransactionHandler)
+        IMongoDbContext mongoTransactionHandler)
     {
         _redisCache = redisCache;
         _distributedLock = distributedLock;
@@ -124,7 +124,6 @@ public class UrlMappingRepository : IUrlMappingRepository
 
     private async Task CreateUrlMappings(List<UrlMapping> urlMappings, CancellationToken cancellationToken)
     {
-        //TODO: Add Transaction Here and Indexing for mongodb
         var urlMappingIds = new Guid[urlMappings.Count];
 
         for (var i = 0; i < urlMappings.Count; i++)

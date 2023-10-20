@@ -35,7 +35,7 @@ builder.Services.Configure<JwtSetting>(builder.Configuration.GetSection(nameof(J
 
 builder.Services.ConfigureRedis(builder.Configuration);
 builder.Services.AddScoped<RateLimiterFilter>();
-builder.Services.AddScoped<IMongoTransactionHandler, MongoTransactionHandler>();
+builder.Services.AddScoped<IMongoDbContext, MongoDbContext>();
 builder.Services.AddSingleton<IRedisCache, RedisCache>();
 
 builder.Services.AddScoped<INotificationServiceStrategy, SmsService>();

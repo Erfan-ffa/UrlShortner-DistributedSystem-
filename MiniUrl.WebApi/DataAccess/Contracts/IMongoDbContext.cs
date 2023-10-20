@@ -2,7 +2,7 @@
 
 namespace MiniUrl.DataAccess.Contracts;
 
-public interface IMongoTransactionHandler
+public interface IMongoDbContext
 {
     IMongoClient Client { get;}
     

@@ -4,13 +4,13 @@ using MongoDB.Driver;
 
 namespace MiniUrl.DataAccess.MongoDatabase;
 
-public class MongoTransactionHandler : IMongoTransactionHandler
+public class MongoDbContext : IMongoDbContext
 {
     public IMongoClient Client { get;  }
     public IMongoDatabase Database { get;}
     public IClientSessionHandle CurrentClientSessionHandle { get; set; }
 
-    public MongoTransactionHandler(IOptionsMonitor<MongoSetting> mongoSetting)
+    public MongoDbContext(IOptionsMonitor<MongoSetting> mongoSetting)
     {
         Client = new MongoClient(mongoSetting.CurrentValue.ConnectionString);
         Database = Client.GetDatabase(mongoSetting.CurrentValue.DatabaseName);
