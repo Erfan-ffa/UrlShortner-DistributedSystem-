@@ -21,21 +21,17 @@ public class UrlViewUpdater : IUrlViewUpdater
         _serviceProvider = serviceProvider;
     }
 
-    public async Task UpdateViewsAsync(UrlMappingData urlMappingData, string shortUrl, long lastViewsCount, CancellationToken cancellationToken)
+    public async Task UpdateViewsAsync(UrlMappingData urlMappingData, string shortUrl, CancellationToken cancellationToken)
     {
         var eventPublisher = _serviceProvider.GetRequiredService<IPublishEndpoint>();
         
         var urlViewsCacheKey = CacheKeys.UrlViews(shortUrl);
-        var urlViewsCount = await _redisCache.ReadObject<long>(urlViewsCacheKey);
-        var increasedViews = urlViewsCount - lastViewsCount;
-        
-        if(increasedViews <= 0)
-            return;
+        var updatedViewsCount = await _redisCache.ReadObjectFromPersistInstance<long>(urlViewsCacheKey);
         
         await eventPublisher.Publish(new UrlViewsIncreased 
         {
             UrlMappingId = urlMappingData.MappingId,
-            ViewsToIncrement = increasedViews,
+            UpdatedViewsCount = updatedViewsCount,
             LastViewedDate = DateTime.Now
         }, cancellationToken);
 

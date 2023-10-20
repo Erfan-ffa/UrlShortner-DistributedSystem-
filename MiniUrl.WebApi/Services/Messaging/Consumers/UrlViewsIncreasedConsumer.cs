@@ -20,8 +20,8 @@ public class UrlViewsIncreasedConsumer : IConsumer<Batch<UrlViewsIncreased>>
             x => new UrlViewsUpdateRequest
             {
                 UrlMappingId = x.Message.UrlMappingId,
-                ViewsToIncrement = x.Message.ViewsToIncrement,
-                LastViewedDate = DateTime.Now.AddYears(-2)
+                UpdatedViewsCount = x.Message.UpdatedViewsCount,
+                LastViewedDate = DateTime.Now
             }).ToList();
         
         await _urlMappingRepository.UpdateUrlViewsByMappingIdAsync(urlViewsUpdateRequest, context.CancellationToken);
