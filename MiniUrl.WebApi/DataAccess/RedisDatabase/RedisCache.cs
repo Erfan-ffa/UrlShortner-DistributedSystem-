@@ -10,21 +10,25 @@ public class RedisCache : IRedisCache
 {
     private static ConnectionMultiplexer _unPersistMultiplexer;
     private static ConnectionMultiplexer _persistMultiplexer;
+    private readonly RedisSetting _redisSetting;
 
     public RedisCache(IOptionsMonitor<RedisSetting> cacheSettings)
     {
-        var redisSetting = cacheSettings.CurrentValue;
+        _redisSetting = cacheSettings.CurrentValue;
         ArgumentNullException.ThrowIfNull(cacheSettings);
-        _unPersistMultiplexer = RedisMultiplexerFactory.GetMultiplexer(redisSetting, new List<string>
+        _unPersistMultiplexer = InitializeMultiplexer(_redisSetting.Masters[0], _redisSetting.Slaves[0]);
+        _persistMultiplexer = InitializeMultiplexer(_redisSetting.Masters[1], _redisSetting.Slaves[1]);
+    }
+
+    private ConnectionMultiplexer InitializeMultiplexer(EndpointData masterSettings, EndpointData slaveSettings)
+    {
+        var endpoints = new List<string>
         {
-            $"{redisSetting.Masters[0].Ip}:{redisSetting.Masters[0].Port}",
-            $"{redisSetting.Slaves[0].Ip}:{redisSetting.Slaves[0].Port}",
-        });
-        _persistMultiplexer = RedisMultiplexerFactory.GetMultiplexer(redisSetting, new List<string>
-        {
-            $"{redisSetting.Masters[1].Ip}:{redisSetting.Masters[1].Port}",
-            $"{redisSetting.Slaves[1].Ip}:{redisSetting.Slaves[1].Port}",
-        });
+            $"{masterSettings.Ip}:{masterSettings.Port}",
+            $"{slaveSettings.Ip}:{slaveSettings.Port}"
+        };
+
+        return RedisMultiplexerFactory.GetMultiplexer(_redisSetting, endpoints);
     }
 
     public async Task<T> ReadObject<T>(string key, int timeout = 15000)
@@ -43,9 +47,25 @@ public class RedisCache : IRedisCache
         return default;
     }
 
+    public async Task<T> ReadObjectFromPersistInstance<T>(string key, int timeout = 15000)
+    {
+        try
+        {
+            var cachedObject = await _persistMultiplexer.GetDatabase().StringGetAsync(key);
+            if (string.IsNullOrEmpty(cachedObject) == false)
+                return JsonSerializer.Deserialize<T>(cachedObject);
+        }
+        catch (Exception ex)
+        {
+            return default;
+        }
+
+        return default;
+    }
+
     public async Task<bool> KeyExists(string key, int timeout = 15000)
         => await _unPersistMultiplexer.GetDatabase().KeyExistsAsync(key);
-    
+
     public async Task<bool> WriteObject<T>(string key, T obj, double expirationSeconds = 60 * 20,
         int timeout = 15000, bool shouldExpire = true)
     {
@@ -53,7 +73,7 @@ public class RedisCache : IRedisCache
         {
             var content = JsonSerializer.Serialize(obj);
             var masterDatabase = _unPersistMultiplexer.GetDatabase();
-            
+
             var result = await masterDatabase.StringSetAsync(key, content,
                 expiry: shouldExpire ? TimeSpan.FromSeconds(expirationSeconds) : null,
                 When.Always, CommandFlags.PreferMaster);
@@ -67,7 +87,7 @@ public class RedisCache : IRedisCache
 
         return true;
     }
-  
+
     public bool BulkWrite<T>(Dictionary<string, T> pairs, double expirationSeconds = 60 * 20, int timeout = 15000)
     {
         try
@@ -80,11 +100,11 @@ public class RedisCache : IRedisCache
             foreach (var pair in pairs)
             {
                 var stringSetTask = batch.StringSetAsync(pair.Key, JsonSerializer.Serialize(pair.Value),
-                    when: When.Always, 
+                    when: When.Always,
                     expiry: TimeSpan.FromSeconds(expirationSeconds));
                 tasks.Add(stringSetTask);
             }
-            
+
             batch.Execute();
             Task.WhenAll(tasks);
 
@@ -100,8 +120,8 @@ public class RedisCache : IRedisCache
 
     public async Task<long> IncrementValueByOneAsync(string key, int timeout = 15000)
     {
-        var database = _unPersistMultiplexer.GetDatabase();
-        var valueAfterIncrement= await database.StringIncrementAsync(key);
+        var database = _persistMultiplexer.GetDatabase();
+        var valueAfterIncrement = await database.StringIncrementAsync(key);
         return valueAfterIncrement;
     }
 

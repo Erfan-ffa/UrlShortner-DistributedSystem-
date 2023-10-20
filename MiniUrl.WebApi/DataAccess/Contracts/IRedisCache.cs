@@ -12,4 +12,6 @@ public interface IRedisCache
 
     bool BulkWrite<T>(Dictionary<string, T> pairs, double expirationSeconds = 60 * 20, int timeout = 15000);
     Task<long> IncrementValueByOneAsync(string key, int timeout = 15000);
+
+    Task<T> ReadObjectFromPersistInstance<T>(string key, int timeout = 15000);
 }
