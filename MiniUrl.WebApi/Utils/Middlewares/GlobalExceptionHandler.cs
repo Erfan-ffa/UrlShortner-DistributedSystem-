@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
 using MiniUrl.Models;
+using MiniUrl.Utils.Exceptions;
 
 namespace MiniUrl.Utils.Middlewares;
 
@@ -30,6 +31,7 @@ public class GlobalExceptionHandlerMiddleware
         public async Task Invoke(HttpContext context)
         {
             string message = null;
+            string error = null;
             var httpStatusCode = HttpStatusCode.InternalServerError;
 
             try
@@ -42,17 +44,20 @@ public class GlobalExceptionHandlerMiddleware
                 message = exception.Message;
                 await WriteToResponseAsync();
             }
+            catch (TooManyRequestsException exception)
+            {
+                httpStatusCode = HttpStatusCode.TooManyRequests;
+                message = exception.Message;
+                await WriteToResponseAsync();
+            }
             catch (Exception exception)
             {
                 if (_env.IsDevelopment())
                 {
-                    var dic = new Dictionary<string, string>
-                    {
-                        ["Exception"] = exception.Message,
-                        ["StackTrace"] = exception.StackTrace,
-                    };
-                    message = JsonSerializer.Serialize(dic);
+                    error = exception.StackTrace;
                 }
+                
+                message = exception.Message;
                 await WriteToResponseAsync();
             }
 
@@ -61,7 +66,7 @@ public class GlobalExceptionHandlerMiddleware
                 if (context.Response.HasStarted)
                     throw new InvalidOperationException("The response has already started, the http status code middleware will not be executed.");
 
-                var result = new ApiResponse<object>{ Message = message, HttpStatusCode = httpStatusCode };
+                var result = new ApiResponse<object>{ Message = message, Error = error, HttpStatusCode = httpStatusCode };
                 var jsonResult = JsonSerializer.Serialize(result);
 
                 context.Response.StatusCode = (int)httpStatusCode;
