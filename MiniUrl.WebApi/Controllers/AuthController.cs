@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Net;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MiniUrl.DataAccess.Contracts;
 using MiniUrl.Entities;
@@ -6,20 +7,19 @@ using MiniUrl.Models;
 using MiniUrl.Services.Helpers;
 using MiniUrl.Services.Identity.Contracts;
 using MiniUrl.Services.Notification;
-using MiniUrl.Utils;
 using MiniUrl.Utils.Cache;
 
 namespace MiniUrl.Controllers;
 
 [AllowAnonymous]
 [Route("api/[controller]")]
-public class UserController : BaseController
+public class AuthController : BaseController
 {
     private readonly IJwtService _jwtService;
     private readonly IUserRepository _userRepository;
     private readonly IRedisCache _redisCache;
 
-    public UserController(IJwtService jwtService, IUserRepository userRepository, IRedisCache redisCache)
+    public AuthController(IJwtService jwtService, IUserRepository userRepository, IRedisCache redisCache)
     {
         _jwtService = jwtService;
         _userRepository = userRepository;
@@ -29,7 +29,7 @@ public class UserController : BaseController
     [HttpPost("/send-otp")]
     public async Task<IActionResult> SendOtp(RegisterUserRequest request, CancellationToken cancellationToken)
     {
-        if (HasValidRequestInput(request))
+        if (HasValidRequestInput(request.PhoneNumber, request.UserName, request.Password))
             return FailedResult("Invalid member.");
         
         var userExist = await _userRepository.DoesUserExistByUserNameAsync(request.UserName, cancellationToken);
@@ -38,11 +38,28 @@ public class UserController : BaseController
         
         var notificationService = new NotificationService(new SmsService());
         var otp = notificationService.SendOtp(request.PhoneNumber);
-
-        var cacheKey = CacheKeys.OtpKey(request.PhoneNumber);
-        await _redisCache.WriteObject(cacheKey, otp, 60);
         
-        await _redisCache.WriteObject(CacheKeys.UserInfoKey(request.PhoneNumber), new User
+        await CacheOtpAsync(otp, request.PhoneNumber);
+        await CacheUserInfoAsync(request);
+        
+        return SuccessfulResult(new
+        {
+            PhoneNumber = request.PhoneNumber, 
+            Otp = otp
+        });
+    }
+
+    private async Task CacheOtpAsync(string otp, string phoneNumber)
+    {
+        var cacheKey = CacheKeys.OtpKey(phoneNumber);
+        var hasCached = await _redisCache.WriteObject(cacheKey, otp, 60);
+        if (hasCached == false)
+            throw new Exception("Something wrong happened. please try again.");
+    }
+
+    private async Task CacheUserInfoAsync(RegisterUserRequest request)
+    {
+        var hasCached = await _redisCache.WriteObject(CacheKeys.UserInfoKey(request.PhoneNumber), new User
         {
             UserName = request.UserName,
             PasswordHash = HashGenerator.GetSha256Hash(request.Password),
@@ -50,13 +67,15 @@ public class UserController : BaseController
             CreationTime = DateTime.Now
         });
         
-        return SuccessfulResult(new {PhoneNumber = request.PhoneNumber, Otp = otp});
+        if(hasCached == false) 
+            throw new Exception("Something wrong happened. please try again.");
     }
-    
+
     [HttpPost("/register-otp")]
+    [ProducesResponseType(typeof(ApiResponse<string>), (int)HttpStatusCode.OK)]
     public async Task<IActionResult> VerifyOtp(VerifyOtpRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(request.PhoneNumber) || string.IsNullOrEmpty(request.Otp))
+        if (HasValidRequestInput(request.PhoneNumber, request.Otp))
             return FailedResult("Invalid request input.");
 
         var cacheKey = CacheKeys.OtpKey(request.PhoneNumber);
@@ -77,10 +96,11 @@ public class UserController : BaseController
         return SuccessfulResult(accessToken);
     }
 
-    private bool HasValidRequestInput(RegisterUserRequest user)
-        => string.IsNullOrEmpty(user.UserName) || string.IsNullOrEmpty(user.Password) || string.IsNullOrEmpty(user.PhoneNumber);
+    private bool HasValidRequestInput(params string[] inputs)
+        => inputs.Any(string.IsNullOrEmpty);
 
     [HttpPost("/login")]
+    [ProducesResponseType(typeof(ApiResponse<string>), (int)HttpStatusCode.OK)]
     public async Task<IActionResult> Login([FromBody] LoginUserDto userDto, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetUserByUsernameAsync(userDto.UserName, cancellationToken);
