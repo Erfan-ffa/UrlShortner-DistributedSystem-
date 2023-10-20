@@ -1,5 +1,4 @@
-﻿
-using MassTransit;
+﻿using MassTransit;
 using MiniUrl.DataAccess.Contracts;
 using MiniUrl.Events;
 using MiniUrl.Services.Messaging.Consumers;
@@ -17,26 +16,26 @@ public static class MessagingConfiguration
         service.AddMassTransit(x => { x.UsingRabbitMq();});
         var busControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
         {
+            
             cfg.Host(setting!.Host);
+            cfg.Durable = true;
+            
             cfg.ReceiveEndpoint(setting.ShortUrlCreatedQueueName, e =>
             {
                 e.PrefetchCount = setting.PrefetchCount;
                 e.Batch<ShortUrlCreated>(b =>
                 {
-                    b.MessageLimit = 5;
-                    b.TimeLimit = TimeSpan.FromSeconds(10);
+                    b.MessageLimit = setting.PrefetchCount;
                     b.Consumer(() => new ShortUrlCreatedConsumer(usMappingRepository, redisCache));
                 });
             });
             
             cfg.ReceiveEndpoint(setting.UlrViewsQueueName, e =>
             {
-                // e.Consumer(() => new UrlViewsIncreasedConsumer(usMappingRepository));
-                e.PrefetchCount = 10;
+                e.PrefetchCount = setting.PrefetchCount;
                 e.Batch<UrlViewsIncreased>(b =>
                 {
-                    b.MessageLimit = 5;
-                    b.TimeLimit = TimeSpan.FromSeconds(60);
+                    b.MessageLimit = setting.PrefetchCount;
                     e.Consumer(() => new UrlViewsIncreasedConsumer(usMappingRepository));
                 });
             });
