@@ -37,12 +37,6 @@ public class UrlMappingRepository : IUrlMappingRepository
         UrlViewCollection = dbContext.GetCollection<UrlView>(nameof(UrlView));
     }
 
-    public async Task CreateUrlMappingAsync(UrlMapping urlMapping, CancellationToken cancellationToken)
-    {
-        urlMapping.Id = Guid.NewGuid();
-        await UrlMappingCollection.InsertOneAsync(urlMapping, cancellationToken: cancellationToken);
-    }
-
     public async Task<string> GetRedirectUrlByShortUrlAsync(string shortUrl,
         CancellationToken cancellationToken)
     {
@@ -58,19 +52,20 @@ public class UrlMappingRepository : IUrlMappingRepository
 
         var viewsAfterIncrement = await IncreaseUrlViewsByOneAsync(shortUrl);
 
-        var urlMappingShit = await _redisCache.ReadObject<UrlMappingShit>(cacheKey);
-        if (urlMappingShit is not null && urlMappingShit.ShouldUpdateDb == false)
-            return urlMappingShit.LongUrl;
+        var urlMappingData = await _redisCache.ReadObject<UrlMappingData>(cacheKey);
 
-        if (urlMappingShit is not null)
-        {
-            await DisableUpdateViewsInDbTemporarilyAsync(shortUrl, urlMappingShit);
-            EnqueueUrlViewUpdaterJob(urlMappingShit, shortUrl, viewsAfterIncrement, cancellationToken);
-            return urlMappingShit.LongUrl;
-        }
+        if (urlMappingData is null)
+            return (await CacheUrlMappingAsync(shortUrl, cacheKey, viewsAfterIncrement, cancellationToken)).LongUrl;
+        
+        if (urlMappingData.HasSavedInDb == false)
+            throw new Exception("Something wrong has happened for your url. Please try again.");
+        
+        if (urlMappingData.ShouldUpdateUrlViewsInDb == false)
+            return urlMappingData.LongUrl;
 
-        var urlMapping = await CacheUrlMappingAsync(shortUrl, cacheKey, viewsAfterIncrement, cancellationToken);
-        return urlMapping.LongUrl;
+        await DisableUpdateViewsInDbTemporarilyAsync(shortUrl, urlMappingData);
+        EnqueueUrlViewUpdaterJob(urlMappingData, shortUrl, viewsAfterIncrement, cancellationToken);
+        return urlMappingData.LongUrl;
     }
 
     private async Task<long> IncreaseUrlViewsByOneAsync(string shortUrl)
@@ -80,22 +75,22 @@ public class UrlMappingRepository : IUrlMappingRepository
         return viewsAfterIncrement;
     }
 
-    private void EnqueueUrlViewUpdaterJob(UrlMappingShit urlMappingShit, string shortUrl, long lastViewsCount,
+    private void EnqueueUrlViewUpdaterJob(UrlMappingData urlMappingData, string shortUrl, long lastViewsCount,
         CancellationToken cancellationToken)
     {
         _jobClient.Schedule(() =>
-                _urlViewerUpdater.UpdateViewsAsync(urlMappingShit, shortUrl, lastViewsCount - 1, cancellationToken),
+                _urlViewerUpdater.UpdateViewsAsync(urlMappingData, shortUrl, lastViewsCount - 1, cancellationToken),
                 delay: TimeSpan.FromSeconds(5));
     }
 
-    private async Task DisableUpdateViewsInDbTemporarilyAsync(string shortUrl, UrlMappingShit urlMappingShit)
+    private async Task DisableUpdateViewsInDbTemporarilyAsync(string shortUrl, UrlMappingData urlMappingData)
     {
         var cacheKey = CacheKeys.UrlMapping(shortUrl);
-        var value = new UrlMappingShit(urlMappingShit.MappingId, urlMappingShit.LongUrl, false);
+        var value = new UrlMappingData(urlMappingData.MappingId, urlMappingData.LongUrl, false);
         await _redisCache.WriteObject(cacheKey, value);
     }
 
-    private async Task<UrlMappingShit> CacheUrlMappingAsync(string shortUrl, string cacheKey,
+    private async Task<UrlMappingData> CacheUrlMappingAsync(string shortUrl, string cacheKey,
         long lastViewsCount, CancellationToken cancellationToken)
     {
         var urlMapping = await UrlMappingCollection
@@ -105,7 +100,7 @@ public class UrlMappingRepository : IUrlMappingRepository
         if (urlMapping is null)
             throw new Exception("Invalid url.");
 
-        var urlMappingShit = new UrlMappingShit(urlMapping.Id, urlMapping.LongUrl, false);
+        var urlMappingShit = new UrlMappingData(urlMapping.Id, urlMapping.LongUrl, false);
         await _redisCache.WriteObject(cacheKey, urlMappingShit, CacheExpiration.OneDay);
 
         EnqueueUrlViewUpdaterJob(urlMappingShit, shortUrl, lastViewsCount, cancellationToken);
@@ -140,7 +135,7 @@ public class UrlMappingRepository : IUrlMappingRepository
             UrlMappingId = x.Id,
             Views = 0,
             CreationTime = DateTime.Now,
-            LastViewedDate = DateTime.Now.AddYears(-2)
+            LastViewedDate = DateTime.Now
         });
 
         await UrlViewCollection.InsertManyAsync(urlViews, cancellationToken: cancellationToken);

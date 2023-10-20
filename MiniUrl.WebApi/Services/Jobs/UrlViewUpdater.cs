@@ -21,7 +21,7 @@ public class UrlViewUpdater : IUrlViewUpdater
         _serviceProvider = serviceProvider;
     }
 
-    public async Task UpdateViewsAsync(UrlMappingShit urlMappingShit, string shortUrl, long lastViewsCount, CancellationToken cancellationToken)
+    public async Task UpdateViewsAsync(UrlMappingData urlMappingData, string shortUrl, long lastViewsCount, CancellationToken cancellationToken)
     {
         var eventPublisher = _serviceProvider.GetRequiredService<IPublishEndpoint>();
         
@@ -34,13 +34,13 @@ public class UrlViewUpdater : IUrlViewUpdater
         
         await eventPublisher.Publish(new UrlViewsIncreased 
         {
-            UrlMappingId = urlMappingShit.MappingId,
+            UrlMappingId = urlMappingData.MappingId,
             ViewsToIncrement = increasedViews,
-            LastViewedDate = DateTime.Now // TODO: This is not correct because you do not know the last viewed date time
+            LastViewedDate = DateTime.Now
         }, cancellationToken);
 
         var urlMappingCacheKey = CacheKeys.UrlMapping(shortUrl);
-        urlMappingShit.ShouldUpdateDb = true;
-        await _redisCache.WriteObject(urlMappingCacheKey, urlMappingShit, CacheExpiration.OneDay);
+        urlMappingData.ShouldUpdateUrlViewsInDb = true;
+        await _redisCache.WriteObject(urlMappingCacheKey, urlMappingData, CacheExpiration.OneDay);
     }
 }
