@@ -35,23 +35,12 @@ public class UrlMappingRepository : IUrlMappingRepository
         var dbContext = mongoClient.GetDatabase(mongoSetting.CurrentValue.DatabaseName);
         UrlMappingCollection = dbContext.GetCollection<UrlMapping>(nameof(UrlMapping));
         UrlViewCollection = dbContext.GetCollection<UrlView>(nameof(UrlView));
-        // _mongoTransactionHandler.Database = dbContext;
-        // _mongoTransactionHandler.Client = mongoClient;
     }
 
     public async Task CreateUrlMappingAsync(UrlMapping urlMapping, CancellationToken cancellationToken)
     {
         urlMapping.Id = Guid.NewGuid();
         await UrlMappingCollection.InsertOneAsync(urlMapping, cancellationToken: cancellationToken);
-    }
-
-    public async Task<UrlMapping> GetMappingByShortUrlAsync(string shortUrl, CancellationToken cancellationToken)
-    {
-        var urlMapping = await UrlMappingCollection
-            .Find(x => x.ShortUrl.Equals(shortUrl))
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return urlMapping;
     }
 
     public async Task<string> GetRedirectUrlByShortUrlAsync(string shortUrl,
@@ -124,7 +113,16 @@ public class UrlMappingRepository : IUrlMappingRepository
         return urlMappingShit;
     }
 
-    public async Task CreateUrlMappingsAsync(List<UrlMapping> urlMappings, CancellationToken cancellationToken)
+    public async Task<bool> CreateUrlMappingsAsync(List<UrlMapping> urlMappings, CancellationToken cancellationToken)
+    {
+        var hasCommitted = await _mongoTransactionHandler.WithTransactionAsync(
+            () => CreateUrlMappings(urlMappings, cancellationToken)
+            ,cancellationToken: cancellationToken);
+
+        return hasCommitted;
+    }
+
+    private async Task CreateUrlMappings(List<UrlMapping> urlMappings, CancellationToken cancellationToken)
     {
         //TODO: Add Transaction Here and Indexing for mongodb
         var urlMappingIds = new Guid[urlMappings.Count];
