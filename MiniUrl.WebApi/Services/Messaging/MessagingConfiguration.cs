@@ -26,6 +26,7 @@ public static class MessagingConfiguration
                 e.PrefetchCount = setting.PrefetchCount;
                 e.Batch<ShortUrlCreated>(b =>
                 {
+                    b.TimeLimit = TimeSpan.FromMilliseconds(500);
                     b.MessageLimit = setting.PrefetchCount;
                     b.Consumer(() => new ShortUrlCreatedConsumer(usMappingRepository, redisCache));
                 });
@@ -36,6 +37,7 @@ public static class MessagingConfiguration
                 e.PrefetchCount = setting.PrefetchCount;
                 e.Batch<UrlViewsIncreased>(b =>
                 {
+                    b.TimeLimit = TimeSpan.FromSeconds(1);
                     b.MessageLimit = setting.PrefetchCount;
                     e.Consumer(() => new UrlViewsIncreasedConsumer(usMappingRepository));
                 });

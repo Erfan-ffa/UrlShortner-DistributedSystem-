@@ -50,12 +50,12 @@ public class UrlMappingRepository : IUrlMappingRepository
         if (redLock.IsAcquired == false)
             throw new Exception("Failed to acquire the RedLock.");
 
-        var viewsAfterIncrement = await IncreaseUrlViewsByOneAsync(shortUrl);
+        await IncreaseUrlViewsByOneAsync(shortUrl);
 
         var urlMappingData = await _redisCache.ReadObject<UrlMappingData>(cacheKey);
 
         if (urlMappingData is null)
-            return (await CacheUrlMappingAsync(shortUrl, cacheKey, viewsAfterIncrement, cancellationToken)).LongUrl;
+            return (await CacheUrlMappingAsync(shortUrl, cacheKey, cancellationToken)).LongUrl;
         
         if (urlMappingData.HasSavedInDb == false)
             throw new Exception("Something wrong has happened for your url. Please try again.");
@@ -89,8 +89,7 @@ public class UrlMappingRepository : IUrlMappingRepository
         await _redisCache.WriteObject(cacheKey, value);
     }
 
-    private async Task<UrlMappingData> CacheUrlMappingAsync(string shortUrl, string cacheKey,
-        long lastViewsCount, CancellationToken cancellationToken)
+    private async Task<UrlMappingData> CacheUrlMappingAsync(string shortUrl, string cacheKey, CancellationToken cancellationToken)
     {
         var urlMapping = await UrlMappingCollection
             .Find(x => x.ShortUrl.Equals(shortUrl))
@@ -148,34 +147,26 @@ public class UrlMappingRepository : IUrlMappingRepository
 
         return urlMapping;
     }
-
-    public async Task IncreaseUrlViews(Guid urlMappingId, long incrementValue)
+    
+    public async Task<long?> GetUrlViewsAsync(string shortUrl, CancellationToken cancellationToken)
     {
-        try
-        {
-            var filter = Builders<UrlView>.Filter.Eq(d => d.UrlMappingId, urlMappingId);
-            var updateDefinition = Builders<UrlView>.Update
-                .Inc(d => d.Views, incrementValue)
-                .Set(d => d.LastViewedDate, DateTime.Now);
+        var cacheKey = CacheKeys.UrlViews(shortUrl);
+        var urlViewsCount = await _redisCache.ReadObjectFromPersistInstance<long?>(cacheKey);
+        if (urlViewsCount is not null)
+            return urlViewsCount;
 
-            var a = UrlViewCollection.Find(filter).FirstOrDefault();
+        var urlMapping = (await UrlMappingCollection
+            .FindAsync(x => x.ShortUrl.Equals(shortUrl), cancellationToken: cancellationToken))
+            .FirstOrDefault(cancellationToken);
+        
+        if (urlMapping is null)
+            return default;
 
-            var x = await UrlViewCollection.UpdateOneAsync(filter, updateDefinition);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
-    }
+        var urlViews = (await UrlViewCollection
+            .FindAsync(x => x.UrlMappingId.Equals(urlMapping.Id), cancellationToken: cancellationToken))
+            .FirstOrDefault(cancellationToken);
 
-    public async Task<long> GetUrlViewsByMappingIdAsync(Guid urlMappingId, CancellationToken cancellationToken)
-    {
-        var urlView = await UrlViewCollection
-            .Find(x => x.UrlMappingId == urlMappingId)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return urlView.Views;
+        return urlViews.Views;
     }
 
     public async Task UpdateUrlViewsByMappingIdAsync(List<UrlViewsUpdateRequest> updateRequest, CancellationToken cancellationToken)

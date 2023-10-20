@@ -69,4 +69,14 @@ public class UrlMappingController : BaseController
 
         return RedirectPermanent(redirectUrl);
     }
+
+    [HttpGet("/url-views")]
+    public async Task<IActionResult> GetUrlViews(string shortUrl, CancellationToken cancellationToken)
+    {
+        var urlViews = await _urlMappingRepository.GetUrlViewsAsync(shortUrl, cancellationToken);
+        if (urlViews is null)
+            return FailedResult("Invalid url.");
+
+        return SuccessfulResult(urlViews);
+    }
 }
