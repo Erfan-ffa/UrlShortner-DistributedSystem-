@@ -70,11 +70,10 @@ public class UrlMappingRepository : IUrlMappingRepository
         return urlMappingData.LongUrl;
     }
 
-    private async Task<long> IncreaseUrlViewsByOneAsync(string shortUrl)
+    private async Task IncreaseUrlViewsByOneAsync(string shortUrl)
     {
         var urlViewsCacheKey = CacheKeys.UrlViews(shortUrl);
-        var viewsAfterIncrement = await _redisCache.IncrementValueByOneAsync(urlViewsCacheKey);
-        return viewsAfterIncrement;
+        await _redisCache.IncrementValueByOneAsync(urlViewsCacheKey);
     }
 
     private void EnqueueUrlViewUpdaterJob(UrlMappingData urlMappingData, string shortUrl, CancellationToken cancellationToken)
@@ -212,8 +211,6 @@ public class UrlMappingRepository : IUrlMappingRepository
 
         if (urlMappingsDeleteResult.DeletedCount != urlViewsDeleteResult.DeletedCount)
             throw new Exception("Invalid operation occured.");
-        
-        // TODO: Remove its cache too
     }
 
     private async Task<IEnumerable<Guid>> GetUrlViewMappingIdsAsync(FilterDefinition<UrlView> filter, CancellationToken cancellationToken)

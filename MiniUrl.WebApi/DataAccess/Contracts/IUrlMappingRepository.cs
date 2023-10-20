@@ -7,8 +7,6 @@ public interface IUrlMappingRepository
 {
     Task<bool> CreateUrlMappingsAsync(List<UrlMapping> urlMappings, CancellationToken cancellationToken);
     
-    Task<List<UrlMapping>> GetUserUrls(Guid userId, CancellationToken cancellationToken);
-
     Task<long?> GetUrlViewsAsync(string shortUrl, CancellationToken cancellationToken);
 
     Task<string> GetRedirectUrlByShortUrlAsync(string shortUrl, CancellationToken cancellationToken);
