@@ -24,7 +24,7 @@ public class UrlShorter : IUrlShorter
         _counterRange = counterRange.CurrentValue;
     }
 
-    public async Task<string> GenrateUniqueText()
+    public async Task<string> GenerateUniqueText()
     {
         if (_currentId == _endId)
             await SetStartAndEndIdAsync();

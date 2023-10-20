@@ -42,7 +42,7 @@ public class UrlController : BaseController
         if (ownerId.Equals(default))
             return FailedResult("An error occured please try again.");
 
-        var shortText = await _urlShorter.GenrateUniqueText();
+        var shortText = await _urlShorter.GenerateUniqueText();
         var shortUrl = $"{_httpContext.Request.Host}/{shortText}";
 
         var shortUrlCreatedEvent = new ShortUrlCreated

@@ -2,5 +2,5 @@
 
 public interface IUrlShorter
 {
-    public Task<string> GenrateUniqueText();
+    public Task<string> GenerateUniqueText();
 }
