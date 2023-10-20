@@ -20,9 +20,14 @@ public static class MessagingConfiguration
             
             cfg.Host(setting!.Host);
             cfg.Durable = true;
-            
+
             cfg.ReceiveEndpoint(setting.ShortUrlCreatedQueueName, e =>
             {
+                cfg.UseMessageRetry(x =>
+                {
+                    x.Intervals(TimeSpan.FromSeconds(2));
+                });
+                
                 e.PrefetchCount = setting.PrefetchCount;
                 e.Batch<ShortUrlCreated>(b =>
                 {
@@ -34,6 +39,11 @@ public static class MessagingConfiguration
             
             cfg.ReceiveEndpoint(setting.UlrViewsQueueName, e =>
             {
+                cfg.UseMessageRetry(x =>
+                {
+                    x.Intervals(TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10), TimeSpan.FromMinutes(1));
+                });
+                
                 e.PrefetchCount = setting.PrefetchCount;
                 e.Batch<UrlViewsIncreased>(b =>
                 {
