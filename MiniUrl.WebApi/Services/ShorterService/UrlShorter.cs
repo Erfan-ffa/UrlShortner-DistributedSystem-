@@ -10,9 +10,8 @@ namespace MiniUrl.Services.ShorterService;
 
 public class UrlShorter : IUrlShorter
 {
-    private static long _counter = 0;
-    private static long _currentId = 0;
-    private static long _endId = 0;
+    private static long _currentId;
+    private static long _endId;
     private readonly CounterRange _counterRange;
     private readonly IRedisCache _cache;
     private readonly IDistributedLockFactory _distributedLock;
@@ -29,9 +28,7 @@ public class UrlShorter : IUrlShorter
         if (_currentId == _endId)
             await SetStartAndEndIdAsync();
 
-        _counter = _currentId++;
-
-        var shortenText = Base62Generator.Generate(_counter);
+        var shortenText = Base62Generator.Generate(_currentId++);
         
         return shortenText;
     }
@@ -55,18 +52,14 @@ public class UrlShorter : IUrlShorter
         const int maxRetries = 5;
         for (var i = 0; i < maxRetries; i++)
         {
-            Console.WriteLine(Thread.CurrentThread.ManagedThreadId + " -- before lock");
             await using var redLock = await _distributedLock.CreateLockAsync(counterRangeKey,
                 expiryTime: TimeSpan.FromSeconds(30),
                 waitTime: TimeSpan.FromSeconds(10),
                 retryTime: TimeSpan.FromSeconds(5));
             
             if (redLock.IsAcquired == false)
-                throw new Exception("Failed to acquire the RedLock.");
-            
-            Console.WriteLine(Thread.CurrentThread.ManagedThreadId + " -- after lock");
-            
-            
+                throw new Exception("An error occured please try again.");
+
             var startId = Convert.ToInt64(counterRange) + 1;
             var endId = startId + _counterRange.Increment - 1;
             result = (startId, endId);
@@ -76,7 +69,7 @@ public class UrlShorter : IUrlShorter
         }
 
         if (committed == false)
-            throw new Exception("An Error Occured Please Try Again.");
+            throw new Exception("An error occured please try again.");
         
         return result;
     }
