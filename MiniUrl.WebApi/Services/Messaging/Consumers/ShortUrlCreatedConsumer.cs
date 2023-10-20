@@ -3,7 +3,6 @@ using MiniUrl.DataAccess.Contracts;
 using MiniUrl.Entities;
 using MiniUrl.Events;
 using MiniUrl.Models;
-using MiniUrl.Utils;
 using MiniUrl.Utils.Cache;
 
 namespace MiniUrl.Services.Messaging.Consumers;
@@ -23,19 +22,27 @@ public class ShortUrlCreatedConsumer : IConsumer<Batch<ShortUrlCreated>>
     {
         var urlMappings = GenerateUrlMappings(context.Message);
         var hasCommittedInDb = await AddUrlMappingsInDbAsync(urlMappings, context.CancellationToken);
-
+        
         var keyValuePairs = GenerateKeyValuePairs(urlMappings);
-        // var redisValue = hasCommittedInDb ? @event.Message.LongUrl : "0";
+        if (hasCommittedInDb == false)
+            MarkUrlMappingsAsUncommitted(keyValuePairs);
+        
         AddUrlMappingsInCache(keyValuePairs);
     }
 
-    private Dictionary<string, UrlMappingShit> GenerateKeyValuePairs(List<UrlMapping> urlMappings)
+    private void MarkUrlMappingsAsUncommitted(Dictionary<string, UrlMappingData> urlMappings)
     {
-        var result = new Dictionary<string, UrlMappingShit>();
+        foreach (var urlMappingsValue in urlMappings.Values) 
+            urlMappingsValue.HasSavedInDb = false;
+    }
+    
+    private Dictionary<string, UrlMappingData> GenerateKeyValuePairs(List<UrlMapping> urlMappings)
+    {
+        var result = new Dictionary<string, UrlMappingData>();
         urlMappings.ToList().ForEach(x =>
         {
             var key = CacheKeys.UrlMapping(x.ShortUrl);
-            var value = new UrlMappingShit(x.Id, x.LongUrl);
+            var value = new UrlMappingData(x.Id, x.LongUrl);
             result.Add(key, value);
         });
 
@@ -57,8 +64,7 @@ public class ShortUrlCreatedConsumer : IConsumer<Batch<ShortUrlCreated>>
         var hasCommitted = false;
         try
         {
-            await _urlMappingRepository.CreateUrlMappingsAsync(urlMappings, cancellationToken);
-            hasCommitted = true;
+            hasCommitted = await _urlMappingRepository.CreateUrlMappingsAsync(urlMappings, cancellationToken);
         }
         catch (Exception e)
         {
@@ -68,6 +74,6 @@ public class ShortUrlCreatedConsumer : IConsumer<Batch<ShortUrlCreated>>
         return hasCommitted;
     }
     
-    private void AddUrlMappingsInCache(Dictionary<string, UrlMappingShit> keyValuePairs)
+    private void AddUrlMappingsInCache(Dictionary<string, UrlMappingData> keyValuePairs)
         => _redisCache.BulkWrite(keyValuePairs, CacheExpiration.OneDay);
 }
