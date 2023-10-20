@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Primitives;
 using MiniUrl.DataAccess.Contracts;
 using MiniUrl.Services.CurrentUser;
+using MiniUrl.Utils.Exceptions;
 
 namespace MiniUrl.Utils.Middlewares;
 
@@ -24,7 +25,7 @@ public class RateLimiterFilter : IAsyncActionFilter
 
         var userAllowedUrlCreationCount =  await _userRepository.GetUserAllowedUrlCreationCountAsync(userId);
         if (userAllowedUrlCreationCount <= 0)
-            throw new Exception("You've reached the limitation for creating new url.");
+            throw new TooManyRequestsException("You've reached the limitation for creating new url.");
         
         context.HttpContext.Response.Headers.Add(new KeyValuePair<string, StringValues>
             ("remained-urls-count-to-create", userAllowedUrlCreationCount.ToString()));

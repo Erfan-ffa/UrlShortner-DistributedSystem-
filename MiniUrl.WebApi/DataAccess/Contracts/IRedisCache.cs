@@ -6,7 +6,10 @@ public interface IRedisCache
 
     Task<bool> KeyExists(string key, int timeout = 15000);
     
-    Task<bool> WriteObject<T>(string key, T obj, double expirationSeconds = 420, int timeout = 15000, bool shouldExpire = true);
+    Task<bool> WriteObject<T>(string key, T obj, double expirationSeconds = 420, int timeout = 15000);
+
+    Task<bool> WriteObjectIntoPersistInstance<T>(string key, T obj, double expirationSeconds = 60 * 20,
+        int timeout = 15000, bool shouldExpire = true);
     
     Task KeyDelete(string key);
 

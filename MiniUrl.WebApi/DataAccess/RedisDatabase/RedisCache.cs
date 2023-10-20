@@ -66,13 +66,34 @@ public class RedisCache : IRedisCache
     public async Task<bool> KeyExists(string key, int timeout = 15000)
         => await _unPersistMultiplexer.GetDatabase().KeyExistsAsync(key);
 
-    public async Task<bool> WriteObject<T>(string key, T obj, double expirationSeconds = 60 * 20,
-        int timeout = 15000, bool shouldExpire = true)
+    public async Task<bool> WriteObject<T>(string key, T obj, double expirationSeconds = 60 * 20, int timeout = 15000)
     {
         try
         {
             var content = JsonSerializer.Serialize(obj);
             var masterDatabase = _unPersistMultiplexer.GetDatabase();
+
+            var result = await masterDatabase.StringSetAsync(key, content,
+                expiry: TimeSpan.FromSeconds(expirationSeconds),
+                When.Always, CommandFlags.PreferMaster);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+
+        return true;
+    }
+    
+    public async Task<bool> WriteObjectIntoPersistInstance<T>(string key, T obj, double expirationSeconds = 60 * 20,
+        int timeout = 15000, bool shouldExpire = true)
+    {
+        try
+        {
+            var content = JsonSerializer.Serialize(obj);
+            var masterDatabase = _persistMultiplexer.GetDatabase();
 
             var result = await masterDatabase.StringSetAsync(key, content,
                 expiry: shouldExpire ? TimeSpan.FromSeconds(expirationSeconds) : null,

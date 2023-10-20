@@ -2,7 +2,6 @@
 using MiniUrl.DataAccess.Contracts;
 using MiniUrl.Models;
 using MiniUrl.Services.Helpers;
-using MiniUrl.Utils;
 using MiniUrl.Utils.Cache;
 using RedLockNet;
 
@@ -47,27 +46,30 @@ public class UrlShorter : IUrlShorter
         const string counterRangeKey = CacheKeys.CounterRange;
         var committed = false;
 
-        var counterRange = await _cache.ReadObject<string>(counterRangeKey);
-        
-        const int maxRetries = 5;
-        for (var i = 0; i < maxRetries; i++)
+        using (var redLock = await _distributedLock.CreateLockAsync(counterRangeKey,
+                   expiryTime: TimeSpan.FromSeconds(30),
+                   waitTime: TimeSpan.FromSeconds(10),
+                   retryTime: TimeSpan.FromSeconds(5)))
         {
-            await using var redLock = await _distributedLock.CreateLockAsync(counterRangeKey,
-                expiryTime: TimeSpan.FromSeconds(30),
-                waitTime: TimeSpan.FromSeconds(10),
-                retryTime: TimeSpan.FromSeconds(5));
-            
             if (redLock.IsAcquired == false)
                 throw new Exception("An error occured please try again.");
+            
+            var counterRange = await _cache.ReadObjectFromPersistInstance<string>(counterRangeKey);
+            if (counterRange is null)
+                counterRange = new string("1000000");
+        
+            const int maxRetries = 5;
+            for (var i = 0; i < maxRetries; i++)
+            {
+                var startId = Convert.ToInt64(counterRange) + 1;
+                var endId = startId + _counterRange.Increment - 1;
+                result = (startId, endId);
 
-            var startId = Convert.ToInt64(counterRange) + 1;
-            var endId = startId + _counterRange.Increment - 1;
-            result = (startId, endId);
-
-            var isWrittenInCache = await _cache.WriteObject(counterRangeKey, endId.ToString(), shouldExpire: false);
-            committed = isWrittenInCache;
+                committed = await _cache
+                    .WriteObjectIntoPersistInstance(counterRangeKey, endId.ToString(), shouldExpire: false);
+            }
         }
-
+        
         if (committed == false)
             throw new Exception("An error occured please try again.");
         
