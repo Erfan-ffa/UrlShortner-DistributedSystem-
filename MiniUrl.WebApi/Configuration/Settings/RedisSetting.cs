@@ -1,4 +1,4 @@
-﻿namespace MiniUrl.DataAccess.RedisDatabase;
+﻿namespace MiniUrl.Configuration.Settings;
 
 public class RedisSetting
 {

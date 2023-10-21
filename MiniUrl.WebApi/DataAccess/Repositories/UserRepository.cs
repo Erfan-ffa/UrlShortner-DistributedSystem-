@@ -1,8 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
+using MiniUrl.Configuration.Settings;
 using MiniUrl.DataAccess.Contracts;
-using MiniUrl.DataAccess.MongoDatabase;
 using MiniUrl.Entities;
-using MiniUrl.Utils;
 using MiniUrl.Utils.Cache;
 using MongoDB.Driver;
 

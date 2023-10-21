@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using MiniUrl.Configuration;
+using MiniUrl.Configuration.Settings;
 using MiniUrl.DataAccess.Contracts;
 using MiniUrl.DataAccess.MongoDatabase;
 using MiniUrl.DataAccess.RedisDatabase;

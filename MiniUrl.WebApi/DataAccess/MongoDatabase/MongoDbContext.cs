@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using MiniUrl.Configuration.Settings;
 using MiniUrl.DataAccess.Contracts;
 using MiniUrl.Entities;
 using MongoDB.Driver;
@@ -76,7 +77,6 @@ public class MongoDbContext : IMongoDbContext
 
     private async Task RollBackTransactionAsync(CancellationToken cancellationToken = default)
     {
-        Console.WriteLine("an error rkljdslfk jasdlkf jasdlk ");
         if (CurrentClientSessionHandle == null)
             throw new InvalidOperationException("There is no active session.");
 

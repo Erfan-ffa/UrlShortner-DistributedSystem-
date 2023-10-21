@@ -1,4 +1,4 @@
-﻿namespace MiniUrl.Services.Messaging;
+﻿namespace MiniUrl.Configuration.Settings;
 
 public class RabbitMqSetting
 {

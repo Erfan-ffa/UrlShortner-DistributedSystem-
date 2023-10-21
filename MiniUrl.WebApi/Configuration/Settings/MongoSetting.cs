@@ -1,4 +1,4 @@
-﻿namespace MiniUrl.DataAccess.MongoDatabase;
+﻿namespace MiniUrl.Configuration.Settings;
 
 public class MongoSetting
 {

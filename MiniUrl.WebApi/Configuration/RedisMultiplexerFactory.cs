@@ -1,4 +1,5 @@
-﻿using MiniUrl.DataAccess.RedisDatabase;
+﻿using MiniUrl.Configuration.Settings;
+using MiniUrl.DataAccess.RedisDatabase;
 using StackExchange.Redis;
 
 namespace MiniUrl.Configuration;

@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using Microsoft.Extensions.Options;
 using MiniUrl.Configuration;
+using MiniUrl.Configuration.Settings;
 using MiniUrl.DataAccess.Contracts;
 using StackExchange.Redis;
 

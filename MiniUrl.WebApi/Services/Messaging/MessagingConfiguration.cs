@@ -1,4 +1,5 @@
 ﻿using MassTransit;
+using MiniUrl.Configuration.Settings;
 using MiniUrl.DataAccess.Contracts;
 using MiniUrl.Events;
 using MiniUrl.Services.Messaging.Consumers;
