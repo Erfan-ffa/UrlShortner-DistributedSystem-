@@ -1,0 +1,73 @@
+version: '3'
+
+services:
+  mongo-replica-container:
+    image: mongo
+    container_name: mongo-replica-container
+    ports:
+      - "27020:27017"
+    networks:
+      - miniurlproject
+    command: --replSet rs0
+    volumes:
+      - ./mongodb-data:/data/db
+
+  rabbitmq-container:
+    image: "rabbitmq"
+    hostname: rabbitmq
+    container_name: rabbitmq-container
+    networks:
+      - miniurlproject
+    ports:
+      - "5672:5672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 120s
+      timeout: 5s
+      retries: 3
+
+  redis-master-1-container:
+    image: redis
+    container_name: redis-master-1-container
+    networks:
+      - miniurlproject
+    ports:
+      - "6320:6379"
+      
+  redis-slave-1-container:
+    image: redis
+    container_name: redis-slave-1-container
+    networks:
+      - miniurlproject    
+    ports:
+      - "6321:6379"
+    command: ["--slaveof", "redis-master-1", "6379"]
+
+  redis-master-2-container:
+    image: redis
+    container_name: redis-master-2-container
+    networks:
+      - miniurlproject    
+    ports:
+      - "6330:6379"
+
+  redis-slave-2-container:
+    image: redis
+    container_name: redis-slave-2-container
+    networks:
+      - miniurlproject    
+    ports:
+      - "6331:6379"
+    volumes:
+      - redis-slave-2-data:/data
+    command: ["--slaveof", "redis-master-2", "6379", "--save", "300", "1"]
+
+networks:
+  miniurlproject:
+    external: true
+
+volumes:
+  redis-slave-2-data:
+  rabbitmq-data:
