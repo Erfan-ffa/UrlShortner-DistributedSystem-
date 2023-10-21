@@ -5,6 +5,8 @@ namespace MiniUrl.DataAccess.Contracts;
 
 public interface IUrlMappingRepository
 {
+    Task<IEnumerable<UrlMappingResponse>> GetUrlMappingsByUserIdAsync(Guid userId, CancellationToken cancellationToken);
+
     Task<bool> CreateUrlMappingsAsync(List<UrlMapping> urlMappings, CancellationToken cancellationToken);
     
     Task<long?> GetUrlViewsAsync(string shortUrl, CancellationToken cancellationToken);

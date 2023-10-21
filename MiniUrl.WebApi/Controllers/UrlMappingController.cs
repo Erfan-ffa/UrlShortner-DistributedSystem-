@@ -38,6 +38,9 @@ public class UrlMappingController : BaseController
     [ProducesResponseType(typeof(ApiResponse<string>), (int)HttpStatusCode.OK)]
     public async Task<IActionResult> CreateShortUrl([FromBody] string longUrl, CancellationToken cancellationToken)
     {
+        if(string.IsNullOrEmpty(longUrl))
+            return FailedResult("Invalid url."); 
+        
         var ownerId = _currentUserService.GetUserId();
         if (ownerId.Equals(default))
             return FailedResult("An error occured please try again.");
@@ -63,6 +66,9 @@ public class UrlMappingController : BaseController
     [ProducesResponseType(typeof(ApiResponse<string>), (int)HttpStatusCode.OK)]
     public async Task<IActionResult> Redirect(string shortUrl, CancellationToken cancellationToken)
     {
+        if(string.IsNullOrEmpty(shortUrl))
+            return FailedResult("Invalid url."); 
+        
         var redirectUrl = await _urlMappingRepository.GetRedirectUrlByShortUrlAsync(shortUrl, cancellationToken);
 
         _httpContext.AddQueryParamsToUrl(ref redirectUrl);
@@ -78,5 +84,14 @@ public class UrlMappingController : BaseController
             return FailedResult("Invalid url.");
 
         return SuccessfulResult(urlViews);
+    }
+
+    [HttpGet("/my-urls")]
+    public async Task<IActionResult> GetMyUrls(CancellationToken cancellationToken)
+    {
+        var currentUserId = _currentUserService.GetUserId();
+        var result = await _urlMappingRepository.GetUrlMappingsByUserIdAsync(currentUserId, cancellationToken);
+
+        return SuccessfulResult(result);
     }
 }

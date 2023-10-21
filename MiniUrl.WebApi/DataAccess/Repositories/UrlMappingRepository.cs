@@ -109,6 +109,22 @@ public class UrlMappingRepository : IUrlMappingRepository
         return urlMappingData;
     }
 
+    public async Task<IEnumerable<UrlMappingResponse>> GetUrlMappingsByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var urlMappings = await UrlMappingCollection
+            .Find(x => x.OwnerId.Equals(userId))
+            .ToListAsync(cancellationToken);
+
+        var result = urlMappings.Select(x => new UrlMappingResponse
+        {
+            Id = x.Id,
+            LongUrl = x.LongUrl,
+            ShortUrl = x.ShortUrl
+        });
+
+        return result;
+    }
+
     public async Task<bool> CreateUrlMappingsAsync(List<UrlMapping> urlMappings, CancellationToken cancellationToken)
     {
         var hasCommitted = await _mongoTransactionHandler.WithTransactionAsync(
