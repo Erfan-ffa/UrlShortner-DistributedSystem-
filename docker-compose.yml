@@ -62,7 +62,7 @@ services:
       - "6331:6379"
     volumes:
       - redis-slave-2-data:/data
-    command: ["--slaveof", "redis-master-2", "6379", "--save", "300", "1"]
+    command: ["--slaveof", "redis-master-2", "6379", "--save", "3000", "1"]
 
 networks:
   miniurlproject:
