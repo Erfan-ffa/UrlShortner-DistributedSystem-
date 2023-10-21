@@ -1,6 +1,7 @@
 # Url_Shortner_Project
 
 - How to run the project?
+
   1- First of all run the docker compose file.
 
   2- After that run the follwoing command in your terminal:
