@@ -14,3 +14,6 @@
     docker exec -it mongo-replica-container mongosh --eval "rs.status()"
 
   5- Done :)
+
+  * Flow Of Creating A New ShortUrl
+![Flow Of Creating A New ShortUrl](https://github.com/Erfan-ffa/Url_Shortner_Project/assets/109587086/91ce273b-0855-4da2-921a-a89e37f8e360)
